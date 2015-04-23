@@ -1,0 +1,41 @@
+﻿@{@:<?xml version="1.0" encoding="UTF-8" ?>
+    Layout = null; }
+@model IEnumerable<SiteMapper.Controllers.ParseResultItem>
+<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" 
+        xsi:schemalocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" 
+        xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    @foreach (var item in Model)
+    {
+        <url>
+            <loc>@item.Url</loc>
+            <changefreq>@item.Changefreq</changefreq>
+            @if (!string.IsNullOrWhiteSpace(item.LastModificationDate))
+            {
+                <lastmod>@item.LastModificationDate</lastmod>
+            }
+            @if (item.Priority != null)
+            {
+                string p = item.Priority < 10 ? "0." + item.Priority : "1";
+                <priority>@p</priority> 
+            }
+            @if (item.Images != null && item.Images.Any())
+            {
+                foreach (var image in item.Images)
+                {
+                    <image:image>
+                        <image:loc>@image.Loc</image:loc>
+                        @if(!string.IsNullOrWhiteSpace(image.Caption))
+                        {
+                            <image:caption>@image.Caption</image:caption>
+                        }
+                        @if(!string.IsNullOrWhiteSpace(image.Title))
+                        {
+                            <image:title>@image.Title</image:title>
+                        }
+                    </image:image>
+                }
+            }
+        </url>
+    }
+</urlset>
