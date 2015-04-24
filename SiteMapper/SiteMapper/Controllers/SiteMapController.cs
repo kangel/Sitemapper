@@ -82,7 +82,7 @@ namespace SiteMapper.Controllers
 
             crawlPage(StartingUrl, 10);
 
-            var result = Results.Where(x => x.Value.IsIncluded).ToArray().Select(x => new ParseResultItem(x));
+            var result = Results.Where(x => x.Value != null && x.Value.IsIncluded).ToArray().Select(x => new ParseResultItem(x));
 
             return result;
         }
