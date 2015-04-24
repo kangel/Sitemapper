@@ -287,7 +287,8 @@ namespace SiteMapper.Controllers
                             Caption = altAttr != null ? altAttr.Value.Trim() : null,
                             Title = titleAttr != null ? titleAttr.Value.Trim() : null
                         };
-                        result.Add(img.Loc, img);
+                        if(!result.ContainsKey(img.Loc))
+                            result.Add(img.Loc, img);
                     }
                 } 
             }
