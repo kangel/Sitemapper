@@ -89,6 +89,7 @@ namespace SiteMapper.Controllers
 
         private void crawlPage(string url, int priority)
         {
+            url = removeDefaultPortFromUrl(url);
             if (isCrawlerTarget(url))
             {
                 if (!Results.ContainsKey(url))
@@ -122,6 +123,15 @@ namespace SiteMapper.Controllers
                             prevResult.Priority = priority;
                 }
             }
+        }
+
+        private string removeDefaultPortFromUrl(string url)
+        {
+            var uri = new UriBuilder(url);
+            string result = url;
+            if (uri.Scheme.Equals("http") && uri.Port == 80)
+                result = url.Replace(string.Format("{0}:{1}", uri.Host, uri.Port), uri.Host);
+            return result;
         }
 
         private bool isCrawlerTarget(string url)
