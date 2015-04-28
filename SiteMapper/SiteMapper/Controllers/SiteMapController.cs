@@ -127,10 +127,13 @@ namespace SiteMapper.Controllers
 
         private string conventionalUrl(string url)
         {
-            var uri = new UriBuilder(url);
-            string result = url;
+            // to lower
+            string result = url.ToLower();
+            // remove default port
+            var uri = new UriBuilder(result);
             if (uri.Scheme.Equals("http") && uri.Port == 80)
-                result = url.Replace(string.Format("{0}:{1}", uri.Host, uri.Port), uri.Host);
+                result = result.Replace(string.Format("{0}:{1}", uri.Host.ToLower(), uri.Port), uri.Host);
+            // remove trailing slash
             while (result.EndsWith("/"))
                 result = result.Substring(0, result.Length - 1);
             return result;
