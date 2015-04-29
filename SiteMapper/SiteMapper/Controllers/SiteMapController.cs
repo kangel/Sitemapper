@@ -37,7 +37,7 @@ namespace SiteMapper.Controllers
 
                 UriBuilder uri = new UriBuilder(sitePrimaryUrl);
 
-                var crawler = new Crawler()
+                var crawler = new WideCrawler()
                 {
                     StartingUrl = sitePrimaryUrl,
                     PrimaryHost = uri.Host,
@@ -100,8 +100,8 @@ namespace SiteMapper.Controllers
 
         private void crawlPage(string url, int priority)
         {
-            url = conventionalUrl(url);
-            if (isCrawlerTarget(url))
+            url = url.ToConventionalUrl();
+            if (url.IsCrawlerTargetAt(PrimaryHost))
             {
                 if (!Results.ContainsKey(url))
                 {
@@ -134,31 +134,6 @@ namespace SiteMapper.Controllers
                             prevResult.Priority = priority;
                 }
             }
-        }
-
-        private string conventionalUrl(string url)
-        {
-            // to lower
-            string result = url.ToLower();
-            // remove default port
-            var uri = new UriBuilder(result);
-            if (uri.Scheme.Equals("http") && uri.Port == 80)
-                result = result.Replace(string.Format("{0}:{1}", uri.Host.ToLower(), uri.Port), uri.Host);
-            // remove trailing slash
-            while (result.EndsWith("/"))
-                result = result.Substring(0, result.Length - 1);
-            return result;
-        }
-
-        private bool isCrawlerTarget(string url)
-        {
-            var uri =new UriBuilder(url);
-            return !(uri.Host != PrimaryHost
-                                    || uri.Uri.ToString().ToLower().EndsWith("form") // just because 
-                                    || uri.Uri.ToString().ToLower().Contains(PrimaryHost + "/content/") // avoid images and static content
-                                    || uri.Uri.ToString().ToLower().Contains("mailto:") // avoid mailto 
-                                    || uri.Uri.ToString().ToLower().Contains("javascript:") // avoid javascript:
-                                    || uri.Uri.ToString().ToLower().Contains("tel:")); // avoid tel javascript:
         }
 
         private IEnumerable<string> getReferences(HtmlDocument doc)
@@ -242,6 +217,182 @@ namespace SiteMapper.Controllers
     }
     #endregion
 
+    #region wideCrawler
+    public class WideCrawler
+    {
+        public List<PendingTarget> NextLevelTargets { get; set; }
+        
+        public string StartingUrl { get; set; }
+
+        public string PrimaryHost { get; set; }
+
+        public Dictionary<string, CrawledItem> Results { get; set; }
+
+        public int MaxPriority { get; set; }
+
+        public int MinPriority { get; set; }
+        
+        public WideCrawler(int maxPriority = 10, int minPriority = 1)
+        {
+            this.MaxPriority = maxPriority;
+            this.MinPriority = minPriority;
+        }
+
+        public IEnumerable<ParseResultItem> parseSite()
+        {
+            Results = new Dictionary<string,CrawledItem>();
+
+            int level = 0;
+
+            NextLevelTargets = new List<PendingTarget>();
+
+            NextLevelTargets.Add(new PendingTarget()
+            {
+                Url = StartingUrl,
+                Level = level,
+            });
+
+            while (NextLevelTargets.Any())
+            {
+                parseLevel();
+
+                level++;
+            }
+            var result = Results
+                .Where(x => x.Value != null && x.Value.IsIncluded)
+                .ToArray()
+                .Select(x => new ParseResultItem(x));
+
+            return result;
+        }
+
+        private void parseLevel()
+        {
+            var currentLevel = NextLevelTargets;
+            
+            NextLevelTargets = new List<PendingTarget>();
+
+            foreach(var target in currentLevel)
+            {
+                var foundTargets = parsePage(target);
+                var newTargets = foundTargets.Where(t => !NextLevelTargets.Select(t1 => t1.Url).Any(s => s.Equals(t.Url)));
+                NextLevelTargets.AddRange(newTargets);
+            }
+        }
+
+        private IEnumerable<PendingTarget> parsePage(PendingTarget target)
+        {
+            IEnumerable<PendingTarget> references = new PendingTarget[] {};
+
+            target.Url = target.Url.ToConventionalUrl();
+            
+            if (target.Url.IsCrawlerTargetAt(PrimaryHost))
+            {
+                if (!Results.ContainsKey(target.Url))
+                {
+
+                    CrawledItem crawledItem = null;
+
+                    using (var pageContent = ReadPage(target.Url))
+                    {
+                        if (pageContent != null && pageContent.Document != null)
+                        {
+                            references = getReferences(pageContent.Document, target);
+                            crawledItem = new CrawledItem(pageContent, target, this);
+                        }
+                    }
+
+                    Results.Add(target.Url, crawledItem);
+                }
+            }
+            return references;
+        }
+
+        private IEnumerable<PendingTarget> getReferences(HtmlDocument doc, PendingTarget target)
+        {
+            var references = new List<PendingTarget>();
+
+            var refNodes = doc.DocumentNode.SelectNodes("//a").ToArray();
+
+            foreach (var node in refNodes)
+            {
+                HtmlAttribute aAttribute = node.Attributes["href"];
+                if (aAttribute != null)
+                {
+                    string urlValue = aAttribute.Value.ToAbsoluteUrl(this.StartingUrl).ToConventionalUrl();
+                    if (!string.IsNullOrWhiteSpace(urlValue) 
+                        && !urlValue.StartsWith("#") 
+                        && urlValue != target.Url )
+                    {
+                        string tempStr = urlValue;
+                        references.Add(new PendingTarget()
+                            {
+                                Url = tempStr,
+                                Level = target.Level + 1,
+                            });
+                    }
+                }
+            }
+            return references;
+        }
+
+        private ReadPage ReadPage(string url)
+        {
+            var page = new ReadPage()
+            {
+                Url = url,
+            };
+
+            HttpWebRequest webRequest = HttpWebRequest.Create(url) as HttpWebRequest;
+            if (webRequest == null)
+            {
+                return page;
+            }
+            HttpWebResponse webResponse = null;
+            try
+            {
+                webResponse = webRequest.GetResponse() as HttpWebResponse;
+            }
+            catch (WebException we)
+            {
+                if (we.Message.Contains("404"))
+                {
+                    page.StatusCode = HttpStatusCode.NotFound;
+                }
+            };
+            if (webResponse == null)
+            {
+                return page;
+            }
+
+            Stream data = webResponse.GetResponseStream();
+            string html = String.Empty;
+            HtmlDocument doc = new HtmlDocument();
+            using (StreamReader sr = new StreamReader(data))
+            {
+                html = sr.ReadToEnd();
+                doc.LoadHtml(html);
+            }
+            if (webResponse.ContentType.Contains("text/html"))
+            {
+                page.Document = doc;
+            }
+
+            page.StatusCode = webResponse.StatusCode;
+
+            return page;
+        }
+    }
+
+    public class PendingTarget
+    {
+
+        public string Url { get; set; }
+
+        public int Level { get; set; }
+    }
+    #endregion
+
     #region crawlerTools
     public class CrawledItem
     {
@@ -283,6 +434,12 @@ namespace SiteMapper.Controllers
             bool isIncluded;
             parseIsIncluded(pageContent, out isIncluded);
             this.IsIncluded = isIncluded;
+        }
+
+        public CrawledItem(ReadPage pageContent, PendingTarget target, WideCrawler crawler)
+            : this(pageContent, crawler.MaxPriority - target.Level > crawler.MinPriority ? crawler.MaxPriority - target.Level : crawler.MinPriority)
+        {
+            
         }
 
         private void parseImages(ReadPage pageContent, out IEnumerable<ImageResultItem> images)
@@ -416,4 +573,54 @@ namespace SiteMapper.Controllers
         public string Title { get; set; }
     }
     #endregion
+
+    internal static class Extensions
+    {
+        // assumes s is trimmed
+        internal static string ToAbsoluteUrl(this string s, string StartingUrl)
+        {
+            string tempStr = s.Trim();
+
+            if (!s.StartsWith("http://") && !s.StartsWith("https://"))
+            {
+                tempStr = (
+                    (tempStr.StartsWith("/") && StartingUrl.EndsWith("/"))
+                        ? StartingUrl.Substring(0, StartingUrl.Length - 1)
+                        : StartingUrl)
+                    + tempStr;
+            }
+
+            return tempStr;
+        }
+
+        internal static string ToConventionalUrl(this string s)
+        {
+            // trim it
+            s = s.Trim();
+            // remove starting .. 
+            if (s.StartsWith(".."))
+                s = s.Substring(2);
+            // to lower
+            string result = s.ToLower();
+            // remove default port
+            var uri = new UriBuilder(result);
+            if (uri.Scheme.Equals("http") && uri.Port == 80)
+                result = result.Replace(string.Format("{0}:{1}", uri.Host.ToLower(), uri.Port), uri.Host);
+            // remove trailing slash
+            while (result.EndsWith("/"))
+                result = result.Substring(0, result.Length - 1);
+            return result;
+        }
+
+        internal static bool IsCrawlerTargetAt(this string url, string host)
+        {
+            var uri = new UriBuilder(url);
+            return !(uri.Host != host
+                                    || uri.Uri.ToString().ToLower().EndsWith("form") // just because 
+                                    || uri.Uri.ToString().ToLower().Contains(host + "/content/") // avoid images and static content
+                                    || uri.Uri.ToString().ToLower().Contains("mailto:") // avoid mailto 
+                                    || uri.Uri.ToString().ToLower().Contains("javascript:") // avoid javascript:
+                                    || uri.Uri.ToString().ToLower().Contains("tel:")); // avoid tel javascript:
+        }
+    }
 }
