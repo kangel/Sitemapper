@@ -466,12 +466,15 @@ namespace SiteMapper.Controllers
         internal static bool IsCrawlerTargetAt(this string url, string host)
         {
             var uri = new UriBuilder(url);
+
             return !(uri.Host != host
-                                    || uri.Uri.ToString().ToLower().EndsWith("form") // just because 
-                                    || uri.Uri.ToString().ToLower().Contains(host + "/content/") // avoid images and static content
-                                    || uri.Uri.ToString().ToLower().Contains("mailto:") // avoid mailto 
-                                    || uri.Uri.ToString().ToLower().Contains("javascript:") // avoid javascript:
-                                    || uri.Uri.ToString().ToLower().Contains("tel:")); // avoid tel javascript:
+                || url.Contains("/..")
+                || uri.Fragment.StartsWith("#")
+                || uri.Uri.ToString().ToLower().EndsWith("form") // just because 
+                || uri.Uri.ToString().ToLower().Contains(host + "/content/") // avoid images and static content
+                || uri.Uri.ToString().ToLower().Contains("mailto:") // avoid mailto 
+                || uri.Uri.ToString().ToLower().Contains("javascript:") // avoid javascript:
+                || uri.Uri.ToString().ToLower().Contains("tel:")); // avoid tel javascript:
         }
     }
 }
