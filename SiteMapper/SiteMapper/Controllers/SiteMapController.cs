@@ -68,6 +68,7 @@ namespace SiteMapper.Controllers
         }
     }
 
+    #region deepCrawler
     class Crawler
     {
         public string StartingUrl { get; set; }
@@ -76,11 +77,21 @@ namespace SiteMapper.Controllers
 
         public Dictionary<string, CrawledItem> Results { get; set; }
 
-        internal object parseSite()
+        public int MaxPriority { get; set; }
+
+        public int MinPriority { get; set; }
+        
+        public Crawler(int maxPriority = 10, int minPriority = 1)
+        {
+            this.MaxPriority = maxPriority;
+            this.MinPriority = minPriority;
+        }
+
+        public IEnumerable<ParseResultItem> parseSite()
         {
             Results = new Dictionary<string,CrawledItem>();
 
-            crawlPage(StartingUrl, 10);
+            crawlPage(StartingUrl, MaxPriority);
 
             var result = Results.Where(x => x.Value != null && x.Value.IsIncluded).ToArray().Select(x => new ParseResultItem(x));
 
@@ -111,7 +122,7 @@ namespace SiteMapper.Controllers
 
                     foreach (var reference in references)
                     {
-                        crawlPage(reference, priority > 0 ? priority - 1 : 0);
+                        crawlPage(reference, priority > MinPriority ? priority - 1 : MinPriority);
                     }
                 }
                 else
@@ -229,7 +240,9 @@ namespace SiteMapper.Controllers
             return page;
         }
     }
+    #endregion
 
+    #region crawlerTools
     public class CrawledItem
     {
         private ReadPage pageContent;
@@ -402,4 +415,5 @@ namespace SiteMapper.Controllers
 
         public string Title { get; set; }
     }
+    #endregion
 }
