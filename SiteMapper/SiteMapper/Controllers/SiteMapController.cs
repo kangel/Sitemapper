@@ -352,7 +352,9 @@ namespace SiteMapper.Controllers
                 lastMod = metaNode.GetAttributeValue("content", DateTime.Now.ToString());
             }
             else
-                lastMod = DateTime.Now.ToString();
+            {
+                lastMod = DateTime.Now.AddDays(-1).ToString();
+            }
         }
 
         private void parseFrequency(ReadPage pageContent, out string changeFreq)
