@@ -1,0 +1,33 @@
+Web.config
+==========
+Add node <add key="IS_FILE_CACHED_SITE_MAP" value="true"/> 
+under "<configuration> / <appSettings>". 
+
+Add nodes <remove name="UrlRoutingModule-4.0" /> and <add name="UrlRoutingModule-4.0" type="System.Web.Routing.UrlRoutingModule" preCondition="" />
+under "<configuration> / <system.webServer> / <modules>".
+
+
+App_Start\RouteConfig.cs
+==============
+Add Route 
+            routes.MapRoute(
+                name: "sitemap",
+                url: "sitemap.xml",
+                defaults: new { controller = "SiteMap", action = "Index" }
+            );
+on top of routes, so it processes first. 
+Check that no other routes are named sitemap. 
+
+Controllers\SiteMapController.cs
+================================
+Copy \SiteMapController.cs file into Controllers folders. 
+Make sure it's added to the .csproj file and save all in project. 
+
+==========================================================
+==========================================================
+To override the priority, last modification, inclusion in site map and change frequency for a page: 
+
+make sure there are metas displayed in the <html> / <head> like the following: 
+<meta property="article:modified_time" content="4/30/2015" />
+<meta property="article:included_in_sitemap" content="False" />
+<meta property="article:change_frequency" content="weekly" />
