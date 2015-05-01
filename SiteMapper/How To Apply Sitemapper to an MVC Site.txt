@@ -20,8 +20,14 @@ Check that no other routes are named sitemap.
 
 Controllers\SiteMapController.cs
 ================================
-Copy \SiteMapController.cs file into Controllers folders. 
+Copy SiteMapController.cs file into Controllers folders. 
+Rename namespace for the controller. 
 Make sure it's added to the .csproj file and save all in project. 
+
+Views\SiteMap\Index.cshtml
+==========================
+Copy Index.cshtml into Views\SiteMap folder. 
+Rename namespace for @model at the beginning of the view. 
 
 ==========================================================
 ==========================================================
