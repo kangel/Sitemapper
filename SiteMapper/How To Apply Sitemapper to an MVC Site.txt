@@ -1,3 +1,7 @@
+HtmlAgilityPack Nuget
+=====================
+Add HtmlAgilityPack nuget to the project.
+
 Web.config
 ==========
 Add node <add key="IS_FILE_CACHED_SITE_MAP" value="true"/> 
