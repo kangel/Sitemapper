@@ -346,7 +346,7 @@ namespace SiteMapper.Controllers
         private void parseLastModification(ReadPage pageContent, out string lastMod)
         {
             var nodes = this.pageContent.Document.DocumentNode.SelectNodes("html/head/meta[@property='article:modified_time']");
-            var defaultLastMod = DateTime.Now.Date.AddHours(6).ToMetaStringFormat();
+            var defaultLastMod = DateTime.Now.AddHours(-8).ToMetaStringFormat();
             if (nodes != null)
             {
                 HtmlNode metaNode = nodes.FirstOrDefault();
