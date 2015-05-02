@@ -346,14 +346,21 @@ namespace SiteMapper.Controllers
         private void parseLastModification(ReadPage pageContent, out string lastMod)
         {
             var nodes = this.pageContent.Document.DocumentNode.SelectNodes("html/head/meta[@property='article:modified_time']");
+            var defaultLastMod = DateTime.Now.Date.AddHours(6).ToMetaStringFormat();
             if (nodes != null)
             {
                 HtmlNode metaNode = nodes.FirstOrDefault();
-                lastMod = metaNode.GetAttributeValue("content", DateTime.Now.ToString());
+                lastMod = metaNode.GetAttributeValue("content", defaultLastMod);
+                
+                DateTime dateLastMod;
+                if(DateTime.TryParse(lastMod, out dateLastMod))
+                {
+                    lastMod = dateLastMod.ToMetaStringFormat();
+                }
             }
             else
             {
-                lastMod = DateTime.Now.AddDays(-1).ToString();
+                lastMod = defaultLastMod;
             }
         }
 
@@ -444,6 +451,11 @@ namespace SiteMapper.Controllers
             }
 
             return tempStr;
+        }
+
+        internal static string ToMetaStringFormat(this DateTime d)
+        {
+            return d.ToString("yyyy-mm-dd\"T\"HH:mm:sszzz");
         }
 
         internal static string ToConventionalUrl(this string s)
