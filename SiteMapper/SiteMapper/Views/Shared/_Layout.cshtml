@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title - My ASP.NET Application</title>
     
-    <meta property="article:modified_time" content="@DateTime.Now.AddDays(-1).ToShortDateString()" />
+    @if (ViewBag as System.Dynamic.DynamicObject != null
+        && (ViewBag as System.Dynamic.DynamicObject).GetDynamicMemberNames().Contains("LastMod"))
+    {
+        <meta property="article:modified_time" content="@ViewBag.LastMod" />
+    }
     @if (ViewBag as System.Dynamic.DynamicObject != null
         && (ViewBag as System.Dynamic.DynamicObject).GetDynamicMemberNames().Contains("Included"))
     {

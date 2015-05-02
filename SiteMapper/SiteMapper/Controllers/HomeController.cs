@@ -10,11 +10,13 @@ namespace SiteMapper.Controllers
     {
         public ActionResult Index()
         {
+            ViewBag.LastMod = DateTime.Now.ToShortDateString();
             return View();
         }
 
         public ActionResult About()
         {
+            ViewBag.LastMod = "asdf";
             ViewBag.Message = "Your application description page.";
             ViewBag.Included = true.ToString();
             ViewBag.Priority = 5;
@@ -23,9 +25,10 @@ namespace SiteMapper.Controllers
 
         public ActionResult Contact()
         {
+            //ViewBag.LastMod = DateTime.Now.ToShortDateString();
             ViewBag.Message = "Your contact page.";
             ViewBag.Priority = 4;
-            ViewBag.Included = false.ToString();
+            //ViewBag.Included = false.ToString();
             return View();
         }
     }
