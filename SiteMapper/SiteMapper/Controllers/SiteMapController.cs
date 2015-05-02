@@ -46,7 +46,7 @@ namespace SiteMapper.Controllers
                 if (isFileCached)
                 {
                     ViewData.Model = vm;
-                    using(var sw = new StringWriter())
+                    using (var sw = new StringWriter())
                     {
                         var viewResult = ViewEngines.Engines.FindPartialView(ControllerContext, "Index");
                         var viewContext = new ViewContext(ControllerContext, viewResult.View, ViewData, TempData, sw);
@@ -72,7 +72,7 @@ namespace SiteMapper.Controllers
     public class WideCrawler
     {
         public List<PendingTarget> NextLevelTargets { get; set; }
-        
+
         public string StartingUrl { get; set; }
 
         public string PrimaryHost { get; set; }
@@ -82,7 +82,7 @@ namespace SiteMapper.Controllers
         public int MaxPriority { get; set; }
 
         public int MinPriority { get; set; }
-        
+
         public WideCrawler(int maxPriority = 10, int minPriority = 1)
         {
             this.MaxPriority = maxPriority;
@@ -91,7 +91,7 @@ namespace SiteMapper.Controllers
 
         public IEnumerable<ParseResultItem> parseSite()
         {
-            Results = new Dictionary<string,CrawledItem>();
+            Results = new Dictionary<string, CrawledItem>();
 
             int level = 0;
 
@@ -120,10 +120,10 @@ namespace SiteMapper.Controllers
         private void parseLevel()
         {
             var currentLevel = NextLevelTargets;
-            
+
             NextLevelTargets = new List<PendingTarget>();
 
-            foreach(var target in currentLevel)
+            foreach (var target in currentLevel)
             {
                 var foundTargets = parsePage(target);
                 var newTargets = foundTargets.Where(t => !NextLevelTargets.Select(t1 => t1.Url).Any(s => s.Equals(t.Url)));
@@ -133,10 +133,10 @@ namespace SiteMapper.Controllers
 
         private IEnumerable<PendingTarget> parsePage(PendingTarget target)
         {
-            IEnumerable<PendingTarget> references = new PendingTarget[] {};
+            IEnumerable<PendingTarget> references = new PendingTarget[] { };
 
             target.Url = target.Url.ToConventionalUrl();
-            
+
             if (target.Url.IsCrawlerTargetAt(PrimaryHost))
             {
                 if (!Results.ContainsKey(target.Url))
@@ -163,7 +163,9 @@ namespace SiteMapper.Controllers
         {
             var references = new List<PendingTarget>();
 
-            var refNodes = doc.DocumentNode.SelectNodes("//a").ToArray();
+            var nodes = doc.DocumentNode.SelectNodes("//a");
+
+            var refNodes = nodes != null ? nodes.ToArray() : new HtmlNode[] { };
 
             foreach (var node in refNodes)
             {
@@ -171,16 +173,16 @@ namespace SiteMapper.Controllers
                 if (aAttribute != null)
                 {
                     string urlValue = aAttribute.Value.ToAbsoluteUrl(this.StartingUrl).ToConventionalUrl();
-                    if (!string.IsNullOrWhiteSpace(urlValue) 
-                        && !urlValue.StartsWith("#") 
-                        && urlValue != target.Url )
+                    if (!string.IsNullOrWhiteSpace(urlValue)
+                        && !urlValue.StartsWith("#")
+                        && urlValue != target.Url)
                     {
                         string tempStr = urlValue;
                         references.Add(new PendingTarget()
-                            {
-                                Url = tempStr,
-                                Level = target.Level + 1,
-                            });
+                        {
+                            Url = tempStr,
+                            Level = target.Level + 1,
+                        });
                     }
                 }
             }
@@ -290,7 +292,7 @@ namespace SiteMapper.Controllers
         public CrawledItem(ReadPage pageContent, PendingTarget target, WideCrawler crawler)
             : this(pageContent, crawler.MaxPriority - target.Level > crawler.MinPriority ? crawler.MaxPriority - target.Level : crawler.MinPriority)
         {
-            
+
         }
 
         private void parseImages(ReadPage pageContent, out IEnumerable<ImageResultItem> images)
@@ -323,10 +325,10 @@ namespace SiteMapper.Controllers
                             Caption = altAttr != null ? altAttr.Value.Trim() : null,
                             Title = titleAttr != null ? titleAttr.Value.Trim() : null
                         };
-                        if(!result.ContainsKey(img.Loc))
+                        if (!result.ContainsKey(img.Loc))
                             result.Add(img.Loc, img);
                     }
-                } 
+                }
             }
             images = result.Select(x => x.Value).ToList();
         }
@@ -351,9 +353,9 @@ namespace SiteMapper.Controllers
             {
                 HtmlNode metaNode = nodes.FirstOrDefault();
                 lastMod = metaNode.GetAttributeValue("content", defaultLastMod);
-                
+
                 DateTime dateLastMod;
-                if(DateTime.TryParse(lastMod, out dateLastMod))
+                if (DateTime.TryParse(lastMod, out dateLastMod))
                 {
                     lastMod = dateLastMod.ToMetaStringFormat();
                 }
@@ -485,6 +487,7 @@ namespace SiteMapper.Controllers
                 || url.Contains("/..")
                 || uri.Fragment.StartsWith("#")
                 || uri.Uri.ToString().ToLower().EndsWith("form") // just because 
+                || uri.Uri.ToString().ToLower().Contains("/form/") // just because 
                 || uri.Uri.ToString().ToLower().Contains(host + "/content/") // avoid images and static content
                 || uri.Uri.ToString().ToLower().Contains("mailto:") // avoid mailto 
                 || uri.Uri.ToString().ToLower().Contains("javascript:") // avoid javascript:
