@@ -471,8 +471,13 @@ namespace SiteMapper.Controllers
             string result = s.ToLower();
             // remove default port
             var uri = new UriBuilder(result);
-            if (uri.Scheme.Equals("http") && uri.Port == 80)
-                result = result.Replace(string.Format("{0}:{1}", uri.Host.ToLower(), uri.Port), uri.Host);
+            if ((uri.Scheme.Equals("http")
+                && uri.Port == 80)
+                || (uri.Scheme.Equals("https")
+                && uri.Port == 443))
+                {
+                    result = result.Replace(string.Format("{0}:{1}", uri.Host.ToLower(), uri.Port), uri.Host);
+                }
             // remove trailing slash
             while (result.EndsWith("/"))
                 result = result.Substring(0, result.Length - 1);
